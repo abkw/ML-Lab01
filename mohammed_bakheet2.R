@@ -1,0 +1,77 @@
+
+#linear regression
+mylin=function(X,Y, Xpred){
+  Xpred1=cbind(1,Xpred)
+  X = cbind(1,X)
+  #MISSING: check formulas for linear regression and compute beta
+print(Xpred1)
+  beta <- (solve(t(X)%*%X))%*%t(X)%*%Y
+  print(beta)
+  Res=Xpred1%*%beta
+  return(Res)
+}
+
+myCV=function(X,Y,Nfolds){
+  print(X)
+  n=length(Y)
+  p=ncol(X)
+  set.seed(12345)
+  ind=sample(n,n)
+  X1=X[ind,]
+  Y1=Y[ind]
+  sF=floor(n/Nfolds)
+  MSE=numeric(2^p-1)
+  Nfeat=numeric(2^p-1)
+  Features=list()
+  curr=0
+  
+  #we assume 5 features.
+  
+  for (f1 in 0:1)
+    for (f2 in 0:1)
+      for(f3 in 0:1)
+        for(f4 in 0:1)
+          for(f5 in 0:1){
+            model= c(f1,f2,f3,f4,f5)
+            if (sum(model)==0) next()
+            SSE=0
+            #Creating five folds for the parameters
+            X<-X[sample(nrow(X)),]
+            folds <- cut(seq(1,nrow(X)),breaks=5,labels=FALSE)
+            
+            #Looping through all folds
+            for (k in 1:Nfolds){
+              #MISSING: compute which indices should belong to current fold
+              n=dim(X)[1]
+              id <- which(folds==k,arr.ind=TRUE)
+              
+
+              newX <- as.matrix(X[,which(model==1)])
+              # flds <- createFolds(newX, k = 5, list = TRUE, returnTrain = FALSE)
+              # id <- as.integer(unlist(flds[k]))
+              train <- newX[-id,]
+         
+              test <- newX[id,]
+              #MISSING: implement cross-validation for model with features in "model" and iteration i.
+              
+              Ypred <- mylin(train, Y[-id] ,test)
+              Yp <- Y[id]
+              #MISSING: Get the predicted values for fold 'k', Ypred, and the original values for folf 'k', Yp.
+              SSE=SSE+sum((Ypred-Yp)^2)
+            }
+            curr=curr+1
+            MSE[curr]=SSE/n
+            Nfeat[curr]=sum(model)
+            Features[[curr]]=model
+            
+          }
+  
+  #MISSING: plot MSE against number of features
+
+            plot(factor(as.character(Features)),MSE)
+  
+  i=which.min(MSE)
+  return(list(CV=MSE[i], Features=Features[[i]]))
+}
+
+myCV(as.matrix(swiss[,2:6]), swiss[[1]], 5)

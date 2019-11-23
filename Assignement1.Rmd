@@ -1,0 +1,37 @@
+---
+title: "Assignment1"
+output: html_document
+
+---
+```{r, echo=FALSE, warning=FALSE}
+packages <- c("ggplot2", "plotly")
+}
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r importExcel}
+data <- read.table("D:/Desktop/Machine Learning/Multivariate Statistics/First Group Assignment/T1-9.dat",header = FALSE)
+data
+
+```
+
+```{r description}
+data <- data[,-1]
+means <- vector()
+sds <- vector()
+for (i in colnames(data)){
+  means <- c(means,mean(data[,i]))
+  sds <- c(sds, sd(data[,i]))
+  
+}
+print(means)
+print(sds)
+```
+
+```{r graphing}
+ggplot2::ggplot(data = data)
+```
+

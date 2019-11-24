@@ -1,37 +1,331 @@
 ---
-title: "Assignment1"
-output: html_document
-
+title: "Lab 1 Report"
+author: "Mohammed Bakheet"
+date: "12/19/2019"
+output:
+  pdf_document: default
+  html_document: default
 ---
 ```{r, echo=FALSE, warning=FALSE}
-packages <- c("ggplot2", "plotly")
-}
+packages <- c("ggplot2", "plotly","readxl","kknn")
+
 ```
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r importExcel}
-data <- read.table("D:/Desktop/Machine Learning/Multivariate Statistics/First Group Assignment/T1-9.dat",header = FALSE)
-data
+#1.1 importing xlsx files  
+
+```{r importExcel, warning=FALSE}
+
+data <- readxl::read_excel("D:/Desktop/Machine Learning/Machine Learning/lab01/spambase.xlsx")
+
+```
+#Deviding data into dataset and training
+
+```{r division}
+n=dim(data)[1]
+set.seed(12345)
+id=sample(1:n, floor(n*0.5))
+train=data[id,]
+test=data[-id,]
+
+```
+#2- Logistics Regression 
+```{r logistic_regression,echo=FALSE warning=FALSE}
+
+logiModel <- glm(Spam ~ . , family = binomial, data = train)
+summary(logiModel)
+```
+
+# Prediction for testing data  
+```{r predictiontest}
+glm.probs <- predict(logiModel, newData = test, type = 'response')
+
+#making prediction
+glm.pred <- ifelse(glm.probs > 0.5, 1, 0)
+
+#The confusion matrices
+table(glm.pred,train$Spam)
+table(glm.pred,test$Spam)
+```
+
+#When using the confusion matrix it appears that 473 emails were classified as spam, whereas 1254 emails were not spam  
+computing missclassification
+
+```{r misclassification}
+testMisClassification <- (1 - mean(glm.pred == test$Spam)) * 100
+trainMisClassification <- (1 - mean(glm.pred == train$Spam)) * 100
+testMisClassification
+trainMisClassification
 
 ```
 
-```{r description}
-data <- data[,-1]
-means <- vector()
-sds <- vector()
-for (i in colnames(data)){
-  means <- c(means,mean(data[,i]))
-  sds <- c(sds, sd(data[,i]))
-  
+#3- Classifying test data more than 0.8
+
+```{r 0.8_value}
+
+glmPredtest <- ifelse(glm.probs > 0.8, 1, 0)
+
+#Confustion matrix
+table(glmPredtest,train$Spam)
+table(glmPredtest,test$Spam)
+#computing missclassification
+
+testMisClassification08 <- (1 - mean(glmPredtest == test$Spam)) * 100
+trainMisClassification08 <- (1 - mean(glmPredtest == train$Spam)) *100
+testMisClassification08
+trainMisClassification08
+```
+
+#The mean, or the accuracy of the model in when P(Y = 1|X) > 0.5, otherwirse Y^ = 0, is 0.8394161. Whereas the model accuracy when P(Y = 1|X) > 0.8, otherwirse Y^ = 0, is 0.749635
+#When P(Y = 1|X) > 0.5, 346 emails were correctly classified as spam, and 127 emails were misclassified  
+#When P(Y = 1|X) > 0.8, 106 emails were correctly classified as spam, and 10 emails were misclassified  
+
+#4: standard classifier kknn() with k 30
+
+```{r 4.0, echo=FALSE}
+
+kknnResult <- kknn::kknn(Spam ~ ., train = train, test = test, k=30, distance = 2, kernel = "optimal")
+kknnPredict <- ifelse(kknnResult$fitted.values > 0.5, 1, 0)
+kknnTrain <- table(kknnPredict, train$Spam)
+kknnTest <- table(kknnPredict, test$Spam)
+#Calculating misclassification when k = 30
+#Misclassification for test data
+miscTrain <- (1 - mean(kknnPredict == train$Spam)) * 100
+miscTest <- (1 - mean(kknnPredict == test$Spam)) * 100
+
+#When K = 1
+kknnResult1 <- kknn::kknn(Spam ~ ., train = train, test = test, k=1, distance = 2, kernel = "optimal")
+kknnPredict1 <- ifelse(kknnResult1$fitted.values > 0.5, 1, 0)
+kknnTrain1 <- table(kknnPredict1, train$Spam)
+kknnTest1 <- table(kknnPredict1, test$Spam)
+#Calculating misclassification when k = 30
+#Misclassification for test data
+miscTrain1 <- (1 - mean(kknnPredict1 == train$Spam)) * 100
+miscTest1 <- (1 - mean(kknnPredict1 == test$Spam)) * 100
+
+```
+
+#When using k = 1 the misclassification rate increases  
+
+
+
+##Assignment 3. Feature selection by cross-validation in a linear model.
+#linear regression  
+
+```{r linear_regression}
+mylin=function(X,Y, Xpred){
+  Xpred1=cbind(1,Xpred)
+  X = cbind(1,X)
+print(Xpred1)
+  beta <- (solve(t(X)%*%X))%*%t(X)%*%Y
+  print(beta)
+  Res=Xpred1%*%beta
+  return(Res)
 }
-print(means)
-print(sds)
+
+myCV=function(X,Y,Nfolds){
+  print(X)
+  n=length(Y)
+  p=ncol(X)
+  set.seed(12345)
+  ind=sample(n,n)
+  X1=X[ind,]
+  Y1=Y[ind]
+  sF=floor(n/Nfolds)
+  MSE=numeric(2^p-1)
+  Nfeat=numeric(2^p-1)
+  Features=list()
+  curr=0
+  
+  #we assume 5 features.
+  
+  for (f1 in 0:1)
+    for (f2 in 0:1)
+      for(f3 in 0:1)
+        for(f4 in 0:1)
+          for(f5 in 0:1){
+            model= c(f1,f2,f3,f4,f5)
+            if (sum(model)==0) next()
+            SSE=0
+            #Creating five folds for the parameters
+            X<-X[sample(nrow(X)),]
+            folds <- cut(seq(1,nrow(X)),breaks=5,labels=FALSE)
+            
+            #Looping through all folds
+            for (k in 1:Nfolds){
+              n=dim(X)[1]
+              id <- which(folds==k,arr.ind=TRUE)
+              newX <- as.matrix(X[,which(model==1)])
+              train <- newX[-id,]
+              test <- newX[id,]
+              Ypred <- mylin(train, Y[-id] ,test)
+              Yp <- Y[id]
+              SSE=SSE+sum((Ypred-Yp)^2)
+            }
+            curr=curr+1
+            MSE[curr]=SSE/n
+            Nfeat[curr]=sum(model)
+            Features[[curr]]=model
+            
+          }
+  
+  #plotting MSE against number of features
+
+            plot(factor(as.character(Features)),MSE)
+
+  i=which.min(MSE)
+  return(list(CV=MSE[i], Features=Features[[i]]))
+}
+
+myCV(as.matrix(swiss[,2:6]), swiss[[1]], 5)
+
 ```
 
-```{r graphing}
-ggplot2::ggplot(data = data)
+#The graph represents the mean square error (MSE) on the y axis and the features on the x axis features are Agriculture, Examination, Education, Catholic, Infant.Mortality. If the feature is selected, then it's represented by 1, and if it's not selected it's represented by 0. The optimal number of feature selected by the model is four (Agriculture, Examination, Education, and Infant.Mortality), the model didn't select the parameter (Catholic), which means being catholic as opposed to protestant doesn't effect fertility, which sounds logical. On the other hand, males involved in agriculture as occupation, draftees receiving highest mark on army examination, education beyond primary school for draftees, and live births who live less than 1 year, all have correlation with fertility. 
+
+
+##Assignment 4. Linear regression and regularization  
+#1) importing xlsx files for the data and plotting the moisture versus protein  
+
+```{r question4}
+library(MASS)
+library(glmnet)
+library(ggplot2)
+
+data <- readxl::read_excel("D:/Desktop/Machine Learning/Machine Learning/lab01/tecator.xlsx")
+#Plotting Moisture versus Protein
+plot(data$Moisture,data$Protein)
+```
+
+#From the plot, the data could be described very well in a linear model, and it appears that moisture and protein have a positive relationship.   
+
+#2) 𝑀i is our model ~ N(M,Sigma^2)
+#Mi = B0 + B1X + B2X^2 + .... + BiX^i
+#it is appropriate to use MSE criterion when fitting this model because the Moisture is normally distributed and the mean square error (MSE) calculate the error in our model.
+
+```{r getAIC, echo=FALSE}
+#getting AIC function that takes training and testing data
+getAic <- function(train, test){
+  aicVector <- vector()
+  trainingMse <- vector()
+  testingMse <- vector()
+  for (i in 1:6){
+  linearModel <- lm(formula = Moisture ~ poly(Protein, degree = i, raw = TRUE), data = train)
+  aicVector <- c(aicVector,AIC(linearModel))
+  #Calculating the training MSE
+  trainingMse <- c(trainingMse, mean(sum(linearModel$residuals^2)))
+  #Calculating the testing MSE
+  testingMse <- c(testingMse, mean((test$Moisture - predict.lm(linearModel, test)) ^ 2))
+  }
+  result <- data.frame(trainingMse,testingMse,c(1:6))
+  return(result)
+}
+```
+
+#3)Dividing the data into training and testing, and fitting the models  
+
+```{R DATA_DIVISION}
+n=dim(data)[1]
+set.seed(12345)
+id=sample(1:n, floor(n*0.5))
+train=data[id,]
+test=data[-id,]
+
+#Sending the data to get AICs for different models and plotting the MSEs
+
+mses <- getAic(train,test)
+ggplot(mses)+
+  geom_line(aes(x = mses$c.1.6., y = mses$trainingMse, color = 'Training MSE')) +
+  geom_point(aes(x = mses$c.1.6., y = mses$trainingMse, color = 'Training MSE')) +
+  geom_line(aes(x = mses$c.1.6., y = mses$testingMse, color = 'Testing MSE')) +
+  geom_point(aes(x = mses$c.1.6., y = mses$testingMse, color = 'Testing MSE')) +
+  scale_color_discrete(name = 'Datset') +
+  ggtitle('Training MSE & Testing MSE') +
+  xlab('Degree (Model Complexity') +
+  ylab('MSE')
+```
+#The best model is when degree = 3 with AIC of 658.3725, and MSE for testing of 39.88347. The more we increase the degree (power) of the model the bigget the error gets for  the testing data, however, for the training data the mean square erros decreases as the model degree increases. The model for training has a high bias and low variance when the model was simple, and when the model gets highly complicated, the error increases also. The best model therefore, is when the model is its medium complexity with 3 degrees.  
+
+#4) Variable selection of a linear model
+```{r question4.4}
+modelData <- data[,-c(ncol(data),ncol(data)-1)]
+linearModelAic <- lm(formula = Fat ~ . , data = modelData)
+aicValue <- stepAIC(linearModelAic,direction = "backward")
+```
+
+#63 variable are selected as a final model by stepAIC of the total number of channels, meaning AIC is smallest when using these 63 variables and excluding the rest.  
+
+
+#5) Fitting ridge regression  
+
+```{r question4.5}
+y <- modelData$Fat
+x <- model.matrix(Fat~., modelData)[,-1]
+y <- modelData$Fat
+x <- model.matrix(Fat~., modelData)[,-1]
+lambdas <- 10^seq(3, -2, by = -.1)
+
+cv_fit <- cv.glmnet(x, y, alpha = 0, lambda = lambdas)
+
+#Lambda minimum value
+lambda_best_ridge <- cv_fit$lambda.min
+#The best lambda value is 0.01
+#The lowest point in the curve indicates the optimal lambda which is 0.01 in our case,
+#and it's the log value of lambda that best minimised the error in cross-validation
+
+best_ridge <- glmnet(x, y, alpha = 0, lambda = lambdas)
+
+#Plotting the coefficients for the best ridge model
+
+plot(coef(best_ridge), main="Ridge coefficients with lambda",type = "h", col="blue", ylab="Coefficients",xlab = "Lambda")
+
+```
+
+#The coefficients increases when the value of lambda increases and they decrease when lambda decreases, so, coefficients have a positive relationship with lambda.  
+
+
+
+#6) Fitting lasso regression  
+```{r question6}
+yLasso <- modelData$Fat
+xLasso <- model.matrix(Fat~., modelData)[,-1]
+lambdasLasso <- seq(0, 1, by = 0.01)
+
+#The best lambda value is 0.01
+#The lowest point in the curve indicates the optimal lambda which is 0.01 in our case,
+#and it's the log value of lambda that best minimised the error in cross-validation
+
+best_lasso <- glmnet(xLasso, yLasso, alpha = 1, lambda = lambdasLasso)
+#Plotting the coefficients for the best model
+
+plot(coef(best_lasso), main="Lasso coefficients with lambda",type = "h", col="blue", ylab="Coefficients",xlab = "Lambda")
+```
+
+#In lasso regression many parameters have become zero when lambda is minimum, thus, coefficients are closed or equal to zero, when lambda increases the coefficient increases accordingly.  
+
+
+#7) The best laso model
+```{r lasso}
+cv.out = cv.glmnet(x, y, alpha = 1, lambda = lambdasLasso)
+best_lasso_model <- glmnet(xLasso, yLasso, alpha = 1, lambda = cv.out$lambda.min)
+plot(coef(best_lasso_model), main="Best Lasso Model",type = "h", col="blue", ylab="Coefficients",xlab = "Lambda")
+
+
+```
+#The best lasso model is when lambda is minimal, in our case lambda.min is equal to 0. In this case lasso model simply gives the least squares fit   
+
+#Plotting the coefficients with respoect to lambda  
+```{r question4.7}
+plot(best_lasso,xvar="lambda",label=TRUE) 
+```
+
+#from the plot we can see that lasso has restricted some coefficients to be exactly zero  
+
+#8) when comparing the result from the linear model variable selection and lasso variable
+#selection, linear model selected 63 variables whereas lasso picked 14 variables.
+
 ```
 

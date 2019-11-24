@@ -4,6 +4,7 @@ author: "Mohammed Bakheet"
 date: "12/19/2019"
 output:
   pdf_document: default
+  pdf_docuemnt: default
   html_document: default
 ---
 ```{r, echo=FALSE, warning=FALSE}
@@ -14,7 +15,7 @@ packages <- c("ggplot2", "plotly","readxl","kknn")
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
+# Assignment 1. Spam classification with nearest neighbors
 #1.1 importing xlsx files  
 
 ```{r importExcel, warning=FALSE}
@@ -22,7 +23,7 @@ knitr::opts_chunk$set(echo = TRUE)
 data <- readxl::read_excel("D:/Desktop/Machine Learning/Machine Learning/lab01/spambase.xlsx")
 
 ```
-#Deviding data into dataset and training
+#Dividing data into testing and training
 
 ```{r division}
 n=dim(data)[1]
@@ -33,13 +34,13 @@ test=data[-id,]
 
 ```
 #2- Logistics Regression 
-```{r logistic_regression,echo=FALSE warning=FALSE}
+```{r logistic_regression,echo=FALSE, warning=FALSE}
 
 logiModel <- glm(Spam ~ . , family = binomial, data = train)
-summary(logiModel)
+
 ```
 
-# Prediction for testing data  
+#Prediction for testing data  
 ```{r predictiontest}
 glm.probs <- predict(logiModel, newData = test, type = 'response')
 
@@ -83,9 +84,11 @@ trainMisClassification08
 #When P(Y = 1|X) > 0.5, 346 emails were correctly classified as spam, and 127 emails were misclassified  
 #When P(Y = 1|X) > 0.8, 106 emails were correctly classified as spam, and 10 emails were misclassified  
 
+
+
 #4: standard classifier kknn() with k 30
 
-```{r 4.0, echo=FALSE}
+```{r 4.0}
 
 kknnResult <- kknn::kknn(Spam ~ ., train = train, test = test, k=30, distance = 2, kernel = "optimal")
 kknnPredict <- ifelse(kknnResult$fitted.values > 0.5, 1, 0)
@@ -95,7 +98,8 @@ kknnTest <- table(kknnPredict, test$Spam)
 #Misclassification for test data
 miscTrain <- (1 - mean(kknnPredict == train$Spam)) * 100
 miscTest <- (1 - mean(kknnPredict == test$Spam)) * 100
-
+miscTrain
+miscTest
 #When K = 1
 kknnResult1 <- kknn::kknn(Spam ~ ., train = train, test = test, k=1, distance = 2, kernel = "optimal")
 kknnPredict1 <- ifelse(kknnResult1$fitted.values > 0.5, 1, 0)
@@ -105,6 +109,8 @@ kknnTest1 <- table(kknnPredict1, test$Spam)
 #Misclassification for test data
 miscTrain1 <- (1 - mean(kknnPredict1 == train$Spam)) * 100
 miscTest1 <- (1 - mean(kknnPredict1 == test$Spam)) * 100
+miscTrain1
+miscTest1
 
 ```
 
@@ -115,19 +121,16 @@ miscTest1 <- (1 - mean(kknnPredict1 == test$Spam)) * 100
 ##Assignment 3. Feature selection by cross-validation in a linear model.
 #linear regression  
 
-```{r linear_regression}
+```{r linear_regression, echo=FALSE}
 mylin=function(X,Y, Xpred){
   Xpred1=cbind(1,Xpred)
   X = cbind(1,X)
-print(Xpred1)
   beta <- (solve(t(X)%*%X))%*%t(X)%*%Y
-  print(beta)
   Res=Xpred1%*%beta
   return(Res)
 }
 
 myCV=function(X,Y,Nfolds){
-  print(X)
   n=length(Y)
   p=ncol(X)
   set.seed(12345)
@@ -187,24 +190,26 @@ myCV(as.matrix(swiss[,2:6]), swiss[[1]], 5)
 #The graph represents the mean square error (MSE) on the y axis and the features on the x axis features are Agriculture, Examination, Education, Catholic, Infant.Mortality. If the feature is selected, then it's represented by 1, and if it's not selected it's represented by 0. The optimal number of feature selected by the model is four (Agriculture, Examination, Education, and Infant.Mortality), the model didn't select the parameter (Catholic), which means being catholic as opposed to protestant doesn't effect fertility, which sounds logical. On the other hand, males involved in agriculture as occupation, draftees receiving highest mark on army examination, education beyond primary school for draftees, and live births who live less than 1 year, all have correlation with fertility. 
 
 
-##Assignment 4. Linear regression and regularization  
+# Assignment 4. Linear regression and regularization  
 #1) importing xlsx files for the data and plotting the moisture versus protein  
 
-```{r question4}
+```{r question4, echo=FALSE, results=FALSE}
 library(MASS)
 library(glmnet)
 library(ggplot2)
+```
 
+```{r plotMoisture}
 data <- readxl::read_excel("D:/Desktop/Machine Learning/Machine Learning/lab01/tecator.xlsx")
 #Plotting Moisture versus Protein
-plot(data$Moisture,data$Protein)
+plot(data$Moisture,data$Protein, xlab = "Moisture", ylab = "Protein")
 ```
 
 #From the plot, the data could be described very well in a linear model, and it appears that moisture and protein have a positive relationship.   
 
-#2) 𝑀i is our model ~ N(M,Sigma^2)
+#2) 𝑀i is our model ~ N(M,Sigma^2)  
 #Mi = B0 + B1X + B2X^2 + .... + BiX^i
-#it is appropriate to use MSE criterion when fitting this model because the Moisture is normally distributed and the mean square error (MSE) calculate the error in our model.
+  #it is appropriate to use MSE criterion when fitting this model because the Moisture is normally distributed and the mean square error (MSE) calculate the error in our model.
 
 ```{r getAIC, echo=FALSE}
 #getting AIC function that takes training and testing data
@@ -247,10 +252,11 @@ ggplot(mses)+
   xlab('Degree (Model Complexity') +
   ylab('MSE')
 ```
-#The best model is when degree = 3 with AIC of 658.3725, and MSE for testing of 39.88347. The more we increase the degree (power) of the model the bigget the error gets for  the testing data, however, for the training data the mean square erros decreases as the model degree increases. The model for training has a high bias and low variance when the model was simple, and when the model gets highly complicated, the error increases also. The best model therefore, is when the model is its medium complexity with 3 degrees.  
+#
+The best model is when degree = 3 with AIC of 658.3725, and MSE for testing of 39.88347. The more we increase the degree (power) of the model the bigget the error gets for  the testing data, however, for the training data the mean square erros decreases as the model degree increases. The model for training has a high bias and low variance when the model was simple, and when the model gets highly complicated, the error increases also. The best model therefore, is when the model is its medium complexity with 3 degrees.  
 
 #4) Variable selection of a linear model
-```{r question4.4}
+```{r question4.4, results=FALSE}
 modelData <- data[,-c(ncol(data),ncol(data)-1)]
 linearModelAic <- lm(formula = Fat ~ . , data = modelData)
 aicValue <- stepAIC(linearModelAic,direction = "backward")
@@ -315,7 +321,8 @@ plot(coef(best_lasso_model), main="Best Lasso Model",type = "h", col="blue", yla
 
 
 ```
-#The best lasso model is when lambda is minimal, in our case lambda.min is equal to 0. In this case lasso model simply gives the least squares fit   
+#
+The best lasso model is when lambda is minimal, in our case lambda.min is equal to 0. In this case lasso model simply gives the least squares fit   
 
 #Plotting the coefficients with respoect to lambda  
 ```{r question4.7}
